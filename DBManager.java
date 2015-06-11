@@ -10,8 +10,8 @@ import android.database.sqlite.SQLiteOpenHelper;
  */
 public class DBManager {
 
-	private static AtomicInteger writableCounter = new AtomicInteger();
-	private static AtomicInteger readableCounter = new AtomicInteger();
+	private AtomicInteger writableCounter = new AtomicInteger();
+	private AtomicInteger readableCounter = new AtomicInteger();
 	private static DBManager instance;
 	private static SQLiteOpenHelper myHelper;
 	private SQLiteDatabase writableDatabase;
