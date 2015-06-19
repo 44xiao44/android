@@ -1,5 +1,3 @@
-package com.appacts.plugin.DB;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 import android.database.sqlite.SQLiteDatabase;
@@ -10,85 +8,84 @@ import android.database.sqlite.SQLiteOpenHelper;
  */
 public class DBManager {
 
-	private AtomicInteger writableCounter = new AtomicInteger();
-	private AtomicInteger readableCounter = new AtomicInteger();
+	private AtomicInteger databaseCounter = new AtomicInteger();
 	private static DBManager instance;
-	private static SQLiteOpenHelper myHelper;
+	private static SQLiteOpenHelper helper;
 	private SQLiteDatabase writableDatabase;
 	private SQLiteDatabase readableDatabase;
 
 	public static synchronized DBManager getInstance(SQLiteOpenHelper helper) {
 
+		
 		if (instance == null) {
+			DBManager.helper = helper;
 			instance = new DBManager();
-			myHelper = helper;
 		}
+		
 		return instance;
 	}
 
 	public SQLiteDatabase getWritableDatabase() {
-		return closeOrOpenWritableDatabase(true);
+		return closeOrOpenDatabase(true,true);
 	}
 
 	public void closeWritableDatabase() {
-		closeOrOpenWritableDatabase(false);
+		closeOrOpenDatabase(false,true);
 	}
 
 	public SQLiteDatabase getReadableDatabase() {
-		return closeOrOpenReadableDatabase(true);
+		return closeOrOpenDatabase(true, false);
 	}
 
 	public void closeReadableDatabase() {
-		closeOrOpenReadableDatabase(false);
+		closeOrOpenDatabase(false, false);
 	}
 
 	/**
 	 * close or open writable database
-	 * 
-	 * @param operateType
+	 * @param isOpen
 	 *            true:open, false:close
+	 * @param isWrite
+	 *            true:write, false:read
 	 * @return
 	 */
-	private synchronized SQLiteDatabase closeOrOpenWritableDatabase(boolean operateType) {
+	private synchronized SQLiteDatabase closeOrOpenDatabase(boolean isOpen, boolean isWrite) {
 
-		if (true == operateType) {
+		if (true == isOpen) {
 
-			if (writableCounter.incrementAndGet() == 1) {
-				writableDatabase = myHelper.getWritableDatabase();
+			databaseCounter.incrementAndGet();
+			
+			if(true == isWrite){
+				
+				if(null == writableDatabase){
+					writableDatabase = helper.getWritableDatabase();
+				}
+				return writableDatabase;
+				
+			} else {
+			
+				if(null == readableDatabase){
+					readableDatabase = helper.getReadableDatabase();
+				}
+				return readableDatabase;
 			}
-			return writableDatabase;
 
 		} else {
 
-			if (writableCounter.decrementAndGet() == 0) {
-				writableDatabase.close();
+			if (databaseCounter.decrementAndGet() == 0) {
+				
+				if(null != writableDatabase){
+					writableDatabase.close();
+				} else if(null != readableDatabase){
+					readableDatabase.close();
+				}
+				
+				writableDatabase = null;
+				readableDatabase = null;
 			}
+			
 			return null;
 		}
 	}
 
-	/**
-	 * close or open readable database
-	 * 
-	 * @param operateType
-	 *            true:open, false:close
-	 * @return
-	 */
-	private synchronized SQLiteDatabase closeOrOpenReadableDatabase(boolean operateType) {
-
-		if (true == operateType) {
-
-			if (readableCounter.incrementAndGet() == 1) {
-				readableDatabase = myHelper.getReadableDatabase();
-			}
-			return readableDatabase;
-
-		} else {
-
-			if (readableCounter.decrementAndGet() == 0) {
-				readableDatabase.close();
-			}
-			return null;
-		}
-	}
 }
